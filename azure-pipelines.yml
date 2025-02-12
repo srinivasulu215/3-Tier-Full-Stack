@@ -7,7 +7,9 @@ trigger:
 - main
 
 pool:
-  name: Default
+  name: Default  # Default private agent pool
+  demands:
+    - Agent.Name -equals DESKTOP-B5DR2AP 
 
 steps:
 - task: NodeTool@0
