@@ -37,8 +37,6 @@ steps:
     SourceFolder: '$(Build.SourcesDirectory)/target'
     Contents: '**/*.jar'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
-  displayName: 'Copy build artifacts'
-
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
