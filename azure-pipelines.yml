@@ -34,12 +34,13 @@ steps:
     sonarQubeRunAnalysis: false
 - task: CopyFiles@2
   inputs:
-        SourceFolder: '$(system.defaultworkingdirectory)'
-        Contents: '**/*.jar'
-        TargetFolder: '$(build.artifactstagingdirectory)'
+    SourceFolder: '$(Build.SourcesDirectory)/target'
+    Contents: '**/*.jar'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  displayName: 'Copy build artifacts'
+
 - task: PublishBuildArtifacts@1
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
     artifactName: 'drop'
-  condition: and(succeeded(), ne(variables['Build.ArtifactStagingDirectory'], ''))
-  displayName: 'Publish artifacts for deployment'
+
