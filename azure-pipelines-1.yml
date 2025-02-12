@@ -1,0 +1,60 @@
+# Trigger the pipeline when there is a commit or merge to the 'main' branch
+trigger:
+- main
+
+# Specify the pool and agent to run the pipeline
+pool:
+  name: Default  # Uses the self-hosted agent pool named 'Default'
+  demands:
+    - Agent.Name -equals DESKTOP-B5DR2AP  # Ensures the pipeline runs only on the specific agent
+
+steps:
+
+### 1️⃣ Install Node.js ###
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'  # Install Node.js version 20.x
+  displayName: 'Install Node.js'
+
+### 2️⃣ Install Node.js Dependencies & Build ###
+- script: |
+    npm install  # Install all required dependencies from package.json
+    npm run build  # Run the build script defined in package.json
+  displayName: 'npm install and build'
+
+### 3️⃣ Build Java Project with Maven ###
+- task: Maven@3  # Uses Maven task to build the project
+  inputs:
+    mavenPomFile: 'pom.xml'  # Path to the pom.xml file (update if in a subfolder)
+    goals: 'clean package'  # Cleans previous builds and creates a new JAR/WAR file
+    publishJUnitResults: true  # Publishes test results if JUnit tests are available
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'  # Looks for JUnit test reports
+    javaHomeOption: 'JDKVersion'  # Uses the installed JDK version
+    mavenVersionOption: 'Default'  # Uses the default Maven version installed on the agent
+  displayName: 'Build Maven project'
+
+### 4️⃣ Debug: Check If `target/` Exists ###
+- script: ls -R $(Build.SourcesDirectory)
+  displayName: 'List all files after Maven build'
+  # This step lists all files in the source directory to confirm that the target folder exists
+
+### 5️⃣ Copy Artifacts to Staging Directory ###
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)/target'  # Source directory containing built artifacts
+    Contents: '**/*.jar'  # Copy all JAR files (change to **/*.war if using a WAR file)
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'  # Destination where artifacts are staged for publishing
+  condition: and(succeeded(), exists('$(Build.SourcesDirectory)/target'))
+  displayName: 'Copy build artifacts'
+  # This step copies the built files only if the 'target/' folder exists
+
+### 6️⃣ Debug: List Staging Directory Before Publishing ###
+- script: ls -lh $(Build.ArtifactStagingDirectory)
+  displayName: 'List files before publishing'
+  # This step lists files in the staging directory to confirm artifacts exist before publishing
+
+### 7️⃣ Publish Artifacts to Azure DevOps ###
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'  # Publish files from staging directory
+    artifactName: 'drop'  # Artifact name (can be changed as per
